@@ -7,35 +7,32 @@ import { getPascalCase, getRelativePathForImport, getArraySchematics, getLineNoF
 import { NestFile, NestImports, NestProviders } from './nest';
 
 export async function createFile(file: NestFile) {
-
-    if (fs.existsSync(join(file.uri.fsPath, file.name.toLowerCase() + `.${file.type}.ts`))) {
-        return window.showErrorMessage('A file already exists with given name');
-    }
-    else {
+    try {
+        const filePath = join(file.uri.fsPath, `${file.name.toLowerCase()}.${file.type}.ts`);
+        
+        if (fs.existsSync(filePath)) {
+            return window.showErrorMessage('A file already exists with the given name');
+        }
 
         const stats = await workspace.fs.stat(file.uri);
 
         if (stats.type === FileType.Directory) {
-            file.uri = Uri.parse(file.uri.path + '/' + file.fullName);
-        }
-        else {
-            file.uri = Uri.parse(file.uri.path.replace(basename(file.uri.path), '') + '/' + file.fullName);
+            file.uri = Uri.file(join(file.uri.path, file.fullName));
+        } else {
+            const dirPath = file.uri.path.replace(basename(file.uri.path), '');
+            file.uri = Uri.file(join(dirPath, file.fullName));
         }
 
-        return getFileTemplate(file)
-            .then((data) => {
-                return workspace.fs.writeFile(file.uri, new TextEncoder().encode(data));
-            })
-            .then(() => {
-                return addFilesToAppModule(file);
-            })
-            .then(() => {
-                return formatTextDocument(file.uri);
-            })
-            .then(() => {
-                return true;
-            })
-            .catch(err => { return window.showErrorMessage(err); });
+        const data = await getFileTemplate(file);
+        await workspace.fs.writeFile(file.uri, new TextEncoder().encode(data));
+        await addFilesToAppModule(file);
+        await formatTextDocument(file.uri);
+
+        return true;
+    } catch (err) {
+        if(err instanceof Error) {
+            return window.showErrorMessage(`Error creating file: ${err.message}`);
+        }
     }
 }
 

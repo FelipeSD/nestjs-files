@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getPascalCase, getArraySchematics, getClassName, getLineNoFromString } from '../../utils';
+import { getPascalCase, getArraySchematics, getClassName } from '../../utils';
 import { expect } from 'chai';
 import { it, describe } from 'mocha';
 import { getFileTemplate, createFile } from '../../file-helper';

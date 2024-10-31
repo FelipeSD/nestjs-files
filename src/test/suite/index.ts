@@ -1,37 +1,36 @@
-import * as path from 'path';
-import * as Mocha from 'mocha';
-import * as glob from 'glob';
+import * as glob from "glob";
+import Mocha from "mocha";
+import * as path from "path";
 
-export function run(): Promise<void> {
-	// Create the mocha test
-	const mocha = new Mocha({
-		ui: 'tdd',
-	});
-	mocha.useColors(true);
+export async function run(): Promise<void> {
+  const mocha = new Mocha({
+    ui: "tdd",
+    color: true,
+  });
 
-	const testsRoot = path.resolve(__dirname, '..');
+  const testsRoot = path.resolve(__dirname, "..");
 
-	return new Promise((c, e) => {
-		glob('**/**.test.js', { cwd: testsRoot }, (err, files) => {
-			if (err) {
-				return e(err);
-			}
+  try {
+    const files = await new Promise<string[]>((resolve, reject) => {
+      glob.glob("**/*.test.js", { cwd: testsRoot });
+    });
 
 			// Add files to the test suite
-			files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+      files.forEach((file) => mocha.addFile(path.resolve(testsRoot, file)));
 
-			try {
-				// Run the mocha test
-				mocha.run(failures => {
-					if (failures > 0) {
-						e(new Error(`${failures} tests failed.`));
-					} else {
-						c();
-					}
-				});
-			} catch (err) {
-				e(err);
-			}
-		});
-	});
+    await new Promise<void>((resolve, reject) => {
+			// Run the mocha test
+      mocha.run((failures) => {
+        if (failures > 0) {
+          reject(new Error(`${failures} tests failed.`));
+        } else {
+          resolve();
+        }
+      });
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Test runner failed: ${error.message}`);
+    }
+  }
 }
